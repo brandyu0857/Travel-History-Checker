@@ -16,39 +16,39 @@ export default function TravelList({ entries, onEdit, onDelete, onExport }) {
 
   return (
     <div>
-      {/* Filter Bar */}
+      {/* Filter + Search bar */}
       <div className="filter-bar">
-        <div className="filter-group">
-          {FILTER_OPTIONS.map((f) => (
-            <button
-              key={f.key}
-              className={`filter-btn ${activeFilter === f.key ? 'active' : ''}`}
-              onClick={() => setActiveFilter(f.key)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {FILTER_OPTIONS.map((f) => (
+          <button
+            key={f.key}
+            className={`filter-btn ${activeFilter === f.key ? 'active' : ''}`}
+            onClick={() => setActiveFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
 
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
+        <div className="filter-spacer" />
+
+        <div className="search-wrap">
+          <span className="search-lbl">Search</span>
           <input
             type="text"
-            placeholder="Search destination, city, purpose..."
+            placeholder="destination, purpose..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      {/* List header */}
-      <div className="list-header">
-        <div className="result-count">
-          {sorted.length} {sorted.length === 1 ? 'trip' : 'trips'}
+      {/* Controls row */}
+      <div className="list-controls">
+        <span className="result-info">
+          {sorted.length} {sorted.length === 1 ? 'entry' : 'entries'}
           {activeFilter !== 'all' && ` · ${activeLabel}`}
-          {search && ` · matching "${search}"`}
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {search && ` · "${search}"`}
+        </span>
+        <div className="list-actions">
           <select
             className="sort-select"
             value={sort}
@@ -56,49 +56,41 @@ export default function TravelList({ entries, onEdit, onDelete, onExport }) {
           >
             <option value="date_desc">Newest first</option>
             <option value="date_asc">Oldest first</option>
-            <option value="dest_asc">Destination A–Z</option>
+            <option value="dest_asc">A → Z</option>
             <option value="duration_desc">Longest first</option>
           </select>
           <button
-            className="btn btn-success btn-sm"
+            className="btn"
             onClick={() => onExport(sorted, activeLabel)}
             disabled={sorted.length === 0}
-            title="Export to Excel"
           >
-            📊 Export Excel
+            Export .xlsx
           </button>
         </div>
       </div>
 
-      {/* Travel cards */}
+      {/* Entries */}
       {sorted.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🗺️</div>
-          <h3>No trips found</h3>
-          <p>
-            {entries.length === 0
-              ? 'Add your first trip using the form above!'
-              : 'Try adjusting the filter or search query.'}
-          </p>
+          <div className="empty-state-line">No entries found</div>
+          <div className="empty-state-title">
+            {entries.length === 0 ? 'Add your first trip' : 'Try a different filter'}
+          </div>
         </div>
       ) : (
-        <div className="travel-list">
-          {grouped.map(([year, items]) => (
-            <div key={year}>
-              <div className="year-divider">
-                <span>📅 {year}</span>
-              </div>
-              {items.map((entry) => (
-                <TravelCard
-                  key={entry.id}
-                  entry={entry}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+        grouped.map(([year, items]) => (
+          <div key={year}>
+            <div className="year-mark">{year}</div>
+            {items.map((entry) => (
+              <TravelCard
+                key={entry.id}
+                entry={entry}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        ))
       )}
     </div>
   );

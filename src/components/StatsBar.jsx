@@ -4,21 +4,18 @@ export default function StatsBar({ entries }) {
   const { total, totalDays, countries, tripsThisYear } = computeStats(entries);
 
   const stats = [
-    { icon: '✈️', value: total, label: 'Total Trips' },
-    { icon: '📅', value: totalDays, label: 'Days Traveled' },
-    { icon: '🌍', value: countries, label: 'Destinations' },
-    { icon: '🗓️', value: tripsThisYear, label: 'Trips This Year' },
+    { num: total, label: 'Total Trips' },
+    { num: totalDays, label: 'Days Abroad' },
+    { num: countries, label: 'Destinations' },
+    { num: tripsThisYear, label: 'This Year' },
   ];
 
   return (
-    <div className="stats-bar">
+    <div className="stats-strip">
       {stats.map((s) => (
-        <div key={s.label} className="stat-card">
-          <span className="stat-icon">{s.icon}</span>
-          <div>
-            <div className="stat-value">{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </div>
+        <div key={s.label} className="stat-cell">
+          <span className="stat-num">{s.num}</span>
+          <span className="stat-lbl">{s.label}</span>
         </div>
       ))}
     </div>

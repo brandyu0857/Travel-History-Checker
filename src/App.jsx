@@ -14,6 +14,19 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span>
+      {time.toLocaleTimeString('en-US', { hour12: false })}
+    </span>
+  );
+}
+
 export default function App() {
   const [entries, setEntries] = useState(() => loadEntries());
   const [showAddForm, setShowAddForm] = useState(false);
@@ -29,11 +42,7 @@ export default function App() {
     const newEntry = { ...formData, id: generateId() };
     setEntries((prev) => [newEntry, ...prev]);
     setShowAddForm(false);
-    addToast('Trip added successfully!', 'success');
-  }
-
-  function handleEdit(entry) {
-    setEditEntry(entry);
+    addToast('Entry recorded', 'success');
   }
 
   function handleSaveEdit(formData) {
@@ -41,109 +50,95 @@ export default function App() {
       prev.map((e) => (e.id === editEntry.id ? { ...formData, id: editEntry.id } : e))
     );
     setEditEntry(null);
-    addToast('Trip updated!', 'success');
-  }
-
-  function handleDeleteRequest(id) {
-    setDeleteId(id);
+    addToast('Entry updated', 'success');
   }
 
   function handleConfirmDelete() {
     setEntries((prev) => prev.filter((e) => e.id !== deleteId));
     setDeleteId(null);
-    addToast('Trip deleted.', 'default');
+    addToast('Entry removed', 'default');
   }
 
   function handleExport(filtered, label) {
     try {
       exportToExcel(filtered, label);
-      addToast(`Exported ${filtered.length} trips to Excel!`, 'success');
+      addToast(`Exported ${filtered.length} entries`, 'success');
     } catch {
-      addToast('Export failed. Please try again.', 'error');
+      addToast('Export failed', 'error');
     }
   }
 
   const deleteTarget = entries.find((e) => e.id === deleteId);
 
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header */}
       <header className="app-header">
         <div className="header-content">
-          <div className="header-title">
-            <span className="header-icon">✈️</span>
-            <div>
-              <h1>Travel History Tracker</h1>
-              <div className="subtitle">Track your journeys around the world</div>
-            </div>
-          </div>
+          <span className="header-wordmark">Travel History</span>
+          <span className="header-meta">
+            <LiveClock />
+          </span>
           <div className="header-actions">
             <button
-              className="btn btn-primary"
+              className={`btn ${showAddForm ? 'btn-filled' : ''}`}
               onClick={() => setShowAddForm((v) => !v)}
             >
-              {showAddForm ? '✕ Cancel' : '➕ Add Trip'}
+              {showAddForm ? '— Close' : '+ New Entry'}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
       <main className="app-main">
         {/* Stats */}
         <StatsBar entries={entries} />
 
         {/* Add Form */}
         {showAddForm && (
-          <div className="add-section card">
-            <div className="card-header">
-              <div className="card-title">🗺️ New Trip Entry</div>
+          <div className="form-panel">
+            <div className="section-header" style={{ marginBottom: '24px' }}>
+              <span className="section-title">New Entry</span>
             </div>
-            <div className="card-body">
-              <TravelForm
-                onSubmit={handleAdd}
-                onCancel={() => setShowAddForm(false)}
-              />
-            </div>
+            <TravelForm
+              onSubmit={handleAdd}
+              onCancel={() => setShowAddForm(false)}
+            />
           </div>
         )}
 
-        {/* History list */}
-        <div className="card" style={{ marginTop: showAddForm ? '20px' : 0 }}>
-          <div className="card-header">
-            <div className="card-title">📋 Travel History</div>
-          </div>
-          <div className="card-body">
-            <TravelList
-              entries={entries}
-              onEdit={handleEdit}
-              onDelete={handleDeleteRequest}
-              onExport={handleExport}
-            />
-          </div>
-        </div>
+        {/* History */}
+        <TravelList
+          entries={entries}
+          onEdit={setEditEntry}
+          onDelete={setDeleteId}
+          onExport={handleExport}
+        />
       </main>
 
-      {/* Edit modal */}
-      {editEntry && (
-        <EditModal
-          entry={editEntry}
-          onSave={handleSaveEdit}
-          onClose={() => setEditEntry(null)}
-        />
-      )}
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid #000', padding: '14px 32px', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--gray-400)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {entries.length} total entries
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--gray-400)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          Travel History Tracker
+        </span>
+      </footer>
 
-      {/* Confirm delete modal */}
+      {/* Modals */}
+      {editEntry && (
+        <EditModal entry={editEntry} onSave={handleSaveEdit} onClose={() => setEditEntry(null)} />
+      )}
       {deleteId && (
         <ConfirmModal
-          message={`Are you sure you want to delete the trip to "${deleteTarget?.destination}"? This cannot be undone.`}
+          message={`Remove the entry for "${deleteTarget?.destination}"? This cannot be undone.`}
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteId(null)}
         />
       )}
 
-      {/* Toasts */}
       <Toast toasts={toasts} />
-    </>
+    </div>
   );
 }

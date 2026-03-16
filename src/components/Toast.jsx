@@ -4,8 +4,6 @@ export default function Toast({ toasts }) {
     <div className="toast-container">
       {toasts.map((t) => (
         <div key={t.id} className={`toast ${t.type}`}>
-          {t.type === 'success' && '✓ '}
-          {t.type === 'error' && '✕ '}
           {t.message}
         </div>
       ))}

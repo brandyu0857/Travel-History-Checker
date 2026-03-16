@@ -12,11 +12,11 @@ const EMPTY_FORM = {
 
 function validate(data) {
   const errors = {};
-  if (!data.date) errors.date = 'Date is required';
-  if (!data.destination.trim()) errors.destination = 'Destination is required';
-  if (!data.departureCity.trim()) errors.departureCity = 'Departure city is required';
-  if (!data.duration || Number(data.duration) < 1) errors.duration = 'Duration must be at least 1';
-  if (!data.purpose) errors.purpose = 'Purpose is required';
+  if (!data.date) errors.date = 'Required';
+  if (!data.destination.trim()) errors.destination = 'Required';
+  if (!data.departureCity.trim()) errors.departureCity = 'Required';
+  if (!data.duration || Number(data.duration) < 1) errors.duration = 'Min 1';
+  if (!data.purpose) errors.purpose = 'Required';
   return errors;
 }
 
@@ -38,10 +38,7 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
   function handleSubmit(e) {
     e.preventDefault();
     const errs = validate(form);
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     onSubmit({ ...form, duration: Number(form.duration) });
     if (!initialData) setForm({ ...EMPTY_FORM });
     setErrors({});
@@ -50,7 +47,6 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <div className="form-grid">
-        {/* Date */}
         <div className="form-group">
           <label htmlFor="f-date">Date <span className="required-star">*</span></label>
           <input
@@ -64,13 +60,12 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
           {errors.date && <span className="field-error">{errors.date}</span>}
         </div>
 
-        {/* Destination */}
         <div className="form-group">
           <label htmlFor="f-dest">Destination <span className="required-star">*</span></label>
           <input
             id="f-dest"
             type="text"
-            placeholder="e.g. Tokyo, Japan"
+            placeholder="Tokyo, Japan"
             value={form.destination}
             onChange={(e) => handleChange('destination', e.target.value)}
             className={errors.destination ? 'error' : ''}
@@ -78,13 +73,12 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
           {errors.destination && <span className="field-error">{errors.destination}</span>}
         </div>
 
-        {/* Departure city */}
         <div className="form-group">
           <label htmlFor="f-dep">Departure From <span className="required-star">*</span></label>
           <input
             id="f-dep"
             type="text"
-            placeholder="e.g. New York"
+            placeholder="New York"
             value={form.departureCity}
             onChange={(e) => handleChange('departureCity', e.target.value)}
             className={errors.departureCity ? 'error' : ''}
@@ -92,13 +86,12 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
           {errors.departureCity && <span className="field-error">{errors.departureCity}</span>}
         </div>
 
-        {/* Duration */}
         <div className="form-group">
           <label htmlFor="f-dur">Duration (days) <span className="required-star">*</span></label>
           <input
             id="f-dur"
             type="number"
-            placeholder="e.g. 7"
+            placeholder="7"
             min="1"
             value={form.duration}
             onChange={(e) => handleChange('duration', e.target.value)}
@@ -107,44 +100,38 @@ export default function TravelForm({ onSubmit, onCancel, initialData = null }) {
           {errors.duration && <span className="field-error">{errors.duration}</span>}
         </div>
 
-        {/* Purpose */}
         <div className="form-group">
           <label htmlFor="f-purpose">Purpose <span className="required-star">*</span></label>
           <select
             id="f-purpose"
             value={form.purpose}
             onChange={(e) => handleChange('purpose', e.target.value)}
-            className={errors.purpose ? 'error' : ''}
           >
             {PURPOSE_OPTIONS.map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
-          {errors.purpose && <span className="field-error">{errors.purpose}</span>}
         </div>
 
-        {/* Note */}
         <div className="form-group full-width">
           <label htmlFor="f-note">Personal Note</label>
           <textarea
             id="f-note"
-            placeholder="Add personal notes, highlights, or memories..."
+            placeholder="Highlights, memories, observations..."
             value={form.note}
             onChange={(e) => handleChange('note', e.target.value)}
-            rows={3}
+            rows={2}
           />
         </div>
       </div>
 
       <div className="form-actions">
-        {onCancel && (
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            Cancel
-          </button>
-        )}
-        <button type="submit" className="btn btn-primary">
-          {initialData ? '💾 Save Changes' : '➕ Add Trip'}
+        <button type="submit" className="btn btn-filled">
+          {initialData ? 'Save Changes' : 'Record Entry'}
         </button>
+        {onCancel && (
+          <button type="button" className="btn" onClick={onCancel}>Cancel</button>
+        )}
       </div>
     </form>
   );

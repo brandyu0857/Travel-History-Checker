@@ -7,8 +7,8 @@ export default function EditModal({ entry, onSave, onClose }) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">✏️ Edit Trip</div>
-          <button className="btn-ghost" onClick={onClose} title="Close">✕</button>
+          <span className="modal-title">Edit Entry</span>
+          <button className="btn-ghost" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body">
           <TravelForm initialData={entry} onSubmit={onSave} onCancel={onClose} />

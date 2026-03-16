@@ -1,16 +1,16 @@
 export default function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="modal confirm-dialog">
+      <div className="modal" style={{ maxWidth: '400px' }}>
         <div className="modal-header">
-          <div className="modal-title">🗑️ Confirm Delete</div>
-          <button className="btn-ghost" onClick={onCancel} title="Close">✕</button>
+          <span className="modal-title">Confirm Delete</span>
+          <button className="btn-ghost" onClick={onCancel}>Close</button>
         </div>
         <div className="modal-body">
-          <p>{message}</p>
+          <p className="confirm-text">{message}</p>
           <div className="form-actions">
-            <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-            <button className="btn btn-danger" onClick={onConfirm}>Delete</button>
+            <button className="btn btn-filled" onClick={onConfirm}>Delete</button>
+            <button className="btn" onClick={onCancel}>Cancel</button>
           </div>
         </div>
       </div>
