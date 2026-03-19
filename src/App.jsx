@@ -1,141 +1,144 @@
-import { useState, useEffect } from 'react'
-import { db } from './db'
-import RecipeCard from './components/RecipeCard'
-import RecipeForm from './components/RecipeForm'
-import RecipeDetail from './components/RecipeDetail'
+import { useState, useEffect } from 'react';
+import './App.css';
+import StatsBar from './components/StatsBar';
+import TravelForm from './components/TravelForm';
+import TravelList from './components/TravelList';
+import EditModal from './components/EditModal';
+import ConfirmModal from './components/ConfirmModal';
+import Toast from './components/Toast';
+import { loadEntries, saveEntries } from './utils/storage';
+import { exportToExcel } from './utils/export';
+import { useToast } from './hooks/useToast';
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span>
+      {time.toLocaleTimeString('en-US', { hour12: false })}
+    </span>
+  );
+}
 
 export default function App() {
-  const [recipes, setRecipes] = useState([])
-  const [selectedRecipe, setSelectedRecipe] = useState(null)
-  const [showForm, setShowForm] = useState(false)
-  const [editingRecipe, setEditingRecipe] = useState(null)
+  const [entries, setEntries] = useState(() => loadEntries());
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const { toasts, addToast } = useToast();
 
   useEffect(() => {
-    loadRecipes()
-  }, [])
+    saveEntries(entries);
+  }, [entries]);
 
-  async function loadRecipes() {
-    const all = await db.recipes.orderBy('createdAt').reverse().toArray()
-    setRecipes(all)
+  function handleAdd(formData) {
+    const newEntry = { ...formData, id: generateId() };
+    setEntries((prev) => [newEntry, ...prev]);
+    setShowAddForm(false);
+    addToast('Entry recorded', 'success');
   }
 
-  async function handleSave(formData) {
-    if (editingRecipe) {
-      await db.recipes.update(editingRecipe.id, {
-        ...formData,
-        updatedAt: new Date(),
-      })
-    } else {
-      await db.recipes.add({
-        ...formData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
+  function handleSaveEdit(formData) {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === editEntry.id ? { ...formData, id: editEntry.id } : e))
+    );
+    setEditEntry(null);
+    addToast('Entry updated', 'success');
+  }
+
+  function handleConfirmDelete() {
+    setEntries((prev) => prev.filter((e) => e.id !== deleteId));
+    setDeleteId(null);
+    addToast('Entry removed', 'default');
+  }
+
+  function handleExport(filtered, label) {
+    try {
+      exportToExcel(filtered, label);
+      addToast(`Exported ${filtered.length} entries`, 'success');
+    } catch {
+      addToast('Export failed', 'error');
     }
-    await loadRecipes()
-    setShowForm(false)
-    setEditingRecipe(null)
-    setSelectedRecipe(null)
   }
 
-  async function handleDelete(recipe) {
-    if (!confirm(`Delete "${recipe.name}"?`)) return
-    await db.recipes.delete(recipe.id)
-    await loadRecipes()
-    setSelectedRecipe(null)
-  }
-
-  function openAdd() {
-    setEditingRecipe(null)
-    setShowForm(true)
-  }
-
-  function openEdit(recipe) {
-    setEditingRecipe(recipe)
-    setSelectedRecipe(null)
-    setShowForm(true)
-  }
-
-  function closeForm() {
-    setShowForm(false)
-    setEditingRecipe(null)
-  }
+  const deleteTarget = entries.find((e) => e.id === deleteId);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#faf9f7' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header */}
-      <header className="bg-white border-b border-stone-100 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">📖</span>
-            <span className="font-serif text-lg font-semibold text-stone-900">
-              My Recipes
-            </span>
+      <header className="app-header">
+        <div className="header-content">
+          <span className="header-wordmark">Travel History</span>
+          <span className="header-meta">
+            <LiveClock />
+          </span>
+          <div className="header-actions">
+            <button
+              className={`btn ${showAddForm ? 'btn-filled' : ''}`}
+              onClick={() => setShowAddForm((v) => !v)}
+            >
+              {showAddForm ? '— Close' : '+ New Entry'}
+            </button>
           </div>
-          <button
-            onClick={openAdd}
-            className="bg-stone-900 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-          >
-            <span className="text-base leading-none">+</span>
-            Add Recipe
-          </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        {recipes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="text-6xl mb-4">🍳</div>
-            <h2 className="font-serif text-2xl font-semibold text-stone-800 mb-2">
-              No recipes yet
-            </h2>
-            <p className="text-stone-400 text-sm mb-6">
-              Save your first recipe to get started
-            </p>
-            <button
-              onClick={openAdd}
-              className="bg-stone-900 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-stone-700 transition-colors"
-            >
-              Add your first recipe
-            </button>
-          </div>
-        ) : (
-          <>
-            <p className="text-stone-400 text-xs mb-4 uppercase tracking-wide font-medium">
-              {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'}
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              {recipes.map(recipe => (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  onClick={() => setSelectedRecipe(recipe)}
-                />
-              ))}
+      <main className="app-main">
+        {/* Stats */}
+        <StatsBar entries={entries} />
+
+        {/* Add Form */}
+        {showAddForm && (
+          <div className="form-panel">
+            <div className="section-header" style={{ marginBottom: '24px' }}>
+              <span className="section-title">New Entry</span>
             </div>
-          </>
+            <TravelForm
+              onSubmit={handleAdd}
+              onCancel={() => setShowAddForm(false)}
+            />
+          </div>
         )}
+
+        {/* History */}
+        <TravelList
+          entries={entries}
+          onEdit={setEditEntry}
+          onDelete={setDeleteId}
+          onExport={handleExport}
+        />
       </main>
 
-      {/* Detail Modal */}
-      {selectedRecipe && (
-        <RecipeDetail
-          recipe={selectedRecipe}
-          onClose={() => setSelectedRecipe(null)}
-          onEdit={() => openEdit(selectedRecipe)}
-          onDelete={() => handleDelete(selectedRecipe)}
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid #000', padding: '14px 32px', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--gray-400)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {entries.length} total entries
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--gray-400)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          Travel History Tracker
+        </span>
+      </footer>
+
+      {/* Modals */}
+      {editEntry && (
+        <EditModal entry={editEntry} onSave={handleSaveEdit} onClose={() => setEditEntry(null)} />
+      )}
+      {deleteId && (
+        <ConfirmModal
+          message={`Remove the entry for "${deleteTarget?.destination}"? This cannot be undone.`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteId(null)}
         />
       )}
 
-      {/* Form Modal */}
-      {showForm && (
-        <RecipeForm
-          initial={editingRecipe}
-          onSave={handleSave}
-          onClose={closeForm}
-        />
-      )}
+      <Toast toasts={toasts} />
     </div>
-  )
+  );
 }
