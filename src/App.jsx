@@ -6,7 +6,8 @@ import TravelList from './components/TravelList';
 import EditModal from './components/EditModal';
 import ConfirmModal from './components/ConfirmModal';
 import Toast from './components/Toast';
-import { loadEntries, saveEntries } from './utils/storage';
+import { loadEntries, addEntry, updateEntry, deleteEntry } from './utils/storage';
+import { supabase } from './lib/supabase';
 import { exportToExcel } from './utils/export';
 import { useToast } from './hooks/useToast';
 
@@ -28,35 +29,70 @@ function LiveClock() {
 }
 
 export default function App() {
-  const [entries, setEntries] = useState(() => loadEntries());
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const { toasts, addToast } = useToast();
 
+  async function fetchEntries() {
+    try {
+      const data = await loadEntries();
+      setEntries(data);
+    } catch {
+      addToast('Failed to load entries', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    saveEntries(entries);
-  }, [entries]);
+    fetchEntries();
 
-  function handleAdd(formData) {
+    const channel = supabase
+      .channel('travel_entries_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'travel_entries' }, () => {
+        fetchEntries();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  async function handleAdd(formData) {
     const newEntry = { ...formData, id: generateId() };
-    setEntries((prev) => [newEntry, ...prev]);
-    setShowAddForm(false);
-    addToast('Entry recorded', 'success');
+    try {
+      await addEntry(newEntry);
+      setEntries((prev) => [newEntry, ...prev]);
+      setShowAddForm(false);
+      addToast('Entry recorded', 'success');
+    } catch {
+      addToast('Failed to save entry', 'error');
+    }
   }
 
-  function handleSaveEdit(formData) {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === editEntry.id ? { ...formData, id: editEntry.id } : e))
-    );
-    setEditEntry(null);
-    addToast('Entry updated', 'success');
+  async function handleSaveEdit(formData) {
+    const updated = { ...formData, id: editEntry.id };
+    try {
+      await updateEntry(updated);
+      setEntries((prev) => prev.map((e) => (e.id === editEntry.id ? updated : e)));
+      setEditEntry(null);
+      addToast('Entry updated', 'success');
+    } catch {
+      addToast('Failed to update entry', 'error');
+    }
   }
 
-  function handleConfirmDelete() {
-    setEntries((prev) => prev.filter((e) => e.id !== deleteId));
-    setDeleteId(null);
-    addToast('Entry removed', 'default');
+  async function handleConfirmDelete() {
+    try {
+      await deleteEntry(deleteId);
+      setEntries((prev) => prev.filter((e) => e.id !== deleteId));
+      setDeleteId(null);
+      addToast('Entry removed', 'default');
+    } catch {
+      addToast('Failed to delete entry', 'error');
+    }
   }
 
   function handleExport(filtered, label) {
@@ -69,6 +105,14 @@ export default function App() {
   }
 
   const deleteTarget = entries.find((e) => e.id === deleteId);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--gray-400)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

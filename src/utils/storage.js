@@ -1,64 +1,52 @@
-const STORAGE_KEY = 'travel_history_entries';
+import { supabase } from '../lib/supabase';
 
-export function loadEntries() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : getSampleData();
-  } catch {
-    return getSampleData();
-  }
+function toEntry(row) {
+  return {
+    id: row.id,
+    date: row.date,
+    destination: row.destination,
+    departureCity: row.departure_city,
+    duration: row.duration,
+    purpose: row.purpose,
+    note: row.note || '',
+  };
 }
 
-export function saveEntries(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+function toRow(entry) {
+  return {
+    id: entry.id,
+    date: entry.date,
+    destination: entry.destination,
+    departure_city: entry.departureCity,
+    duration: entry.duration,
+    purpose: entry.purpose,
+    note: entry.note || '',
+  };
 }
 
-function getSampleData() {
-  return [
-    {
-      id: '1',
-      date: '2026-01-15',
-      destination: 'Tokyo',
-      departureCity: 'New York',
-      duration: 10,
-      purpose: 'Travel',
-      note: 'Cherry blossom season was breathtaking. Visited Shibuya and Asakusa.',
-    },
-    {
-      id: '2',
-      date: '2025-11-03',
-      destination: 'London',
-      departureCity: 'New York',
-      duration: 5,
-      purpose: 'Business',
-      note: 'Q4 product review meetings with the UK team.',
-    },
-    {
-      id: '3',
-      date: '2025-08-20',
-      destination: 'Paris',
-      departureCity: 'Los Angeles',
-      duration: 7,
-      purpose: 'Family',
-      note: 'Anniversary trip with the family. Eiffel Tower at night was magical.',
-    },
-    {
-      id: '4',
-      date: '2024-06-10',
-      destination: 'Singapore',
-      departureCity: 'Sydney',
-      duration: 4,
-      purpose: 'Business',
-      note: 'Tech conference and client meetings.',
-    },
-    {
-      id: '5',
-      date: '2023-03-22',
-      destination: 'Cancun',
-      departureCity: 'Chicago',
-      duration: 8,
-      purpose: 'Travel',
-      note: 'Relaxing beach vacation.',
-    },
-  ];
+export async function loadEntries() {
+  const { data, error } = await supabase
+    .from('travel_entries')
+    .select('*')
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data.map(toEntry);
+}
+
+export async function addEntry(entry) {
+  const { error } = await supabase.from('travel_entries').insert(toRow(entry));
+  if (error) throw error;
+}
+
+export async function updateEntry(entry) {
+  const { error } = await supabase
+    .from('travel_entries')
+    .update(toRow(entry))
+    .eq('id', entry.id);
+  if (error) throw error;
+}
+
+export async function deleteEntry(id) {
+  const { error } = await supabase.from('travel_entries').delete().eq('id', id);
+  if (error) throw error;
 }
